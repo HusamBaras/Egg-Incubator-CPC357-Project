@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Egg Incubator Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: auto; }
+        header { text-align: center; margin-bottom: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+        .card h3 { margin-top: 0; color: #666; }
+        .value { font-size: 2.5em; font-weight: bold; color: #2c3e50; }
+        .unit { font-size: 0.5em; color: #7f8c8d; }
+        .status-on { color: #27ae60; }
+        .status-off { color: #e74c3c; }
+        .chart-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .footer { text-align: center; margin-top: 30px; font-size: 0.9em; color: #95a5a6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Smart Egg Incubator Dashboard</h1>
+            <p>SDG 11: Sustainable Cities and Communities - Smart Urban Farming</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="card">
+                <h3>Temperature</h3>
+                <div id="temp-val" class="value">--<span class="unit">°C</span></div>
+            </div>
+            <div class="card">
+                <h3>Humidity</h3>
+                <div id="hum-val" class="value">--<span class="unit">%</span></div>
+            </div>
+            <div class="card">
+                <h3>Heater Status</h3>
+                <div id="heater-val" class="value">--</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="historyChart"></canvas>
+        </div>
+
+        <div class="footer">
+            Last updated: <span id="last-updated">Never</span>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('historyChart').getContext('2d');
+        const historyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Temperature (°C)',
+                    data: [],
+                    borderColor: '#e74c3c',
+                    tension: 0.1,
+                    yAxisID: 'y',
+                }, {
+                    label: 'Humidity (%)',
+                    data: [],
+                    borderColor: '#3498db',
+                    tension: 0.1,
+                    yAxisID: 'y1',
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Temp (°C)' } },
+                    y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Humidity (%)' } }
+                }
+            }
+        });
+
+        async function updateDashboard() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+                
+                document.getElementById('temp-val').innerHTML = `${data.temperature}<span class="unit">°C</span>`;
+                document.getElementById('hum-val').innerHTML = `${data.humidity}<span class="unit">%</span>`;
+                
+                const heaterEl = document.getElementById('heater-val');
+                heaterEl.innerText = data.heater === "true" || data.heater === true ? "ON" : "OFF";
+                heaterEl.className = (data.heater === "true" || data.heater === true) ? "value status-on" : "value status-off";
+                
+                document.getElementById('last-updated').innerText = new Date(data.timestamp).toLocaleTimeString();
+
+                // Update Chart
+                const historyRes = await fetch('/api/history');
+                const historyData = await historyRes.json();
+                
+                historyChart.data.labels = historyData.map(d => new Date(d.timestamp).toLocaleTimeString());
+                historyChart.data.datasets[0].data = historyData.map(d => d.temperature);
+                historyChart.data.datasets[1].data = historyData.map(d => d.humidity);
+                historyChart.update();
+
+            } catch (err) {
+                console.error('Error fetching data:', err);
+            }
+        }
+
+        setInterval(updateDashboard, 5000);
+        updateDashboard();
+    </script>
+</body>
+</html>
