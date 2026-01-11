@@ -7,7 +7,7 @@ const char* ssid = "HUSAMM";        //Your WiFi SSID
 const char* password = "arrrrrrr"; //Your WiFi Password
 
 // Server URL
-const char* serverUrl = "http://172.17.25.216:3000/api/data";
+const char* serverUrl = "http://x:3000/api/data"; // Replace with your server URL, (or Replace the x to your IP address to run locally)
 
 // --- Pin Definitions for Maker Feather AIoT S3 ---
 #define DHTPIN 21      // Updated to GPIO 21 based on user connection
